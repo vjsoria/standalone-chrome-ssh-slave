@@ -52,4 +52,5 @@ COPY setup-sshd /usr/local/bin/setup-sshd
 
 EXPOSE 22
 
-ENTRYPOINT ["/usr/local/bin/setup-sshd"]
+ENTRYPOINT ["/usr/bin/env"]
+CMD ["/usr/local/bin/setup-sshd"]
