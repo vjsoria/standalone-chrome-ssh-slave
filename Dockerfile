@@ -20,37 +20,10 @@
 #  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 #  THE SOFTWARE.
 
-FROM selenium/standalone-chrome
-LABEL MAINTAINER="Nicolas De Loof <nicolas.deloof@gmail.com>"
+FROM vjsoria01/node9-ssh-slave
+LABEL MAINTAINER="Victor Soria <vjsoria@gmail.com>"
 
-ARG user=jenkins
-ARG group=jenkins
-ARG uid=1001
-ARG gid=1001
-ARG JENKINS_AGENT_HOME=/home/${user}
-
-ENV JENKINS_AGENT_HOME ${JENKINS_AGENT_HOME}
-
-RUN sudo groupadd -g ${gid} ${group} \
-    && sudo useradd -d "${JENKINS_AGENT_HOME}" -u "${uid}" -g "${gid}" -m -s /bin/bash "${user}"
-
-# setup SSH server
-RUN sudo apt-get update \
-    && sudo apt-get install --no-install-recommends -y openssh-server \
-    && sudo apt-get clean
-RUN sudo sed -i 's/#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
-RUN sudo sed -i 's/#RSAAuthentication.*/RSAAuthentication yes/' /etc/ssh/sshd_config
-RUN sudo sed -i 's/#PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
-RUN sudo sed -i 's/#SyslogFacility.*/SyslogFacility AUTH/' /etc/ssh/sshd_config
-RUN sudo sed -i 's/#LogLevel.*/LogLevel INFO/' /etc/ssh/sshd_config
-RUN sudo mkdir /var/run/sshd
-
-VOLUME "${JENKINS_AGENT_HOME}" "/tmp" "/run" "/var/run"
-WORKDIR "${JENKINS_AGENT_HOME}"
-
-COPY setup-sshd /usr/local/bin/setup-sshd
-
-EXPOSE 22
-
-ENTRYPOINT ["/usr/bin/env"]
-CMD ["/usr/local/bin/setup-sshd"]
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
+RUN echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list
+RUN apt-get -y update
+RUN apt-get -y install google-chrome-stable
