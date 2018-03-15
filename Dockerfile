@@ -32,7 +32,7 @@ COPY setup-sshd /usr/local/bin/setup-sshd
 
 RUN sudo apt-get update
 RUN sudo apt-get install -y curl
-RUN sudo curl -sL https://deb.nodesource.com/setup_9.x | bash -
+RUN sudo curl -sL https://deb.nodesource.com/setup_9.x | sudo bash -
 RUN sudo apt-get install -y nodejs
 RUN sudo apt-get install -y build-essential
 
