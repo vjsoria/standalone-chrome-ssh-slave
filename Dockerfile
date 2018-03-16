@@ -1,41 +1,63 @@
-FROM selenium/standalone-chrome:3.11.0-antimony
-LABEL MAINTAINER="Victor Soria <vjsoria@gmail.com>"
+FROM ubuntu:trusty
+ENV LC_ALL C
+ENV DEBIAN_FRONTEND noninteractive
+ENV DEBCONF_NONINTERACTIVE_SEEN true
 
-ARG user=jenkins
-ARG group=jenkins
-ARG uid=1001
-ARG gid=1001
-ARG JENKINS_AGENT_HOME=/home/${user}
+MAINTAINER Mark Garratt <mgarratt@gmail.com>
+RUN apt-get -y update
+RUN apt-get install -y -q software-properties-common wget
 
-ENV JENKINS_AGENT_HOME ${JENKINS_AGENT_HOME}
+RUN add-apt-repository -y ppa:mozillateam/firefox-next
+RUN add-apt-repository -y ppa:chris-lea/node.js
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
+RUN echo "deb http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list
 
-RUN sudo groupadd -g ${gid} ${group} \
-    && sudo useradd -d "${JENKINS_AGENT_HOME}" -u "${uid}" -g "${gid}" -m -s /bin/bash "${user}"
+RUN apt-get update -y
+RUN apt-get install -y -q \
+  supervisor \
+  firefox \
+  git \
+  google-chrome-stable \
+  openjdk-7-jre-headless \
+  openssh-server \
+  nodejs \
+  x11vnc \
+  xvfb \
+  xfonts-100dpi \
+  xfonts-75dpi \
+  xfonts-scalable \
+  xfonts-cyrillic
 
-# setup SSH server
-RUN sudo apt-get update \
-    && sudo apt-get install --no-install-recommends -y openssh-server \
-    && sudo apt-get clean
-RUN sudo sed -i 's/#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
-RUN sudo sed -i 's/#RSAAuthentication.*/RSAAuthentication yes/' /etc/ssh/sshd_config
-RUN sudo sed -i 's/#PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
-RUN sudo sed -i 's/#SyslogFacility.*/SyslogFacility AUTH/' /etc/ssh/sshd_config
-RUN sudo sed -i 's/#LogLevel.*/LogLevel INFO/' /etc/ssh/sshd_config
-RUN sudo mkdir /var/run/sshd
+RUN useradd -d /home/jenkins -s /bin/bash -m jenkins
+RUN echo "jenkins:jenkins" | chpasswd
+RUN touch /home/jenkins/.hushlogin
 
-VOLUME "${JENKINS_AGENT_HOME}" "/tmp" "/run" "/var/run"
-WORKDIR "${JENKINS_AGENT_HOME}"
+# fix https://code.google.com/p/chromium/issues/detail?id=318548
+RUN mkdir -p /usr/share/desktop-directories
 
-COPY setup-sshd /usr/local/bin/setup-sshd
+RUN mkdir -p /var/run/sshd
 
+COPY ./configs/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY ./configs/sshd_config /etc/ssh/sshd_config
 
+RUN npm install -g selenium-standalone
 
-RUN sudo apt-get update
-RUN sudo apt-get install -y curl
-RUN sudo curl -sL https://deb.nodesource.com/setup_9.x | sudo bash -
-RUN sudo apt-get install -y nodejs
-RUN sudo apt-get install -y build-essential
+# Needed for build (should be second Dockerfile)
+RUN apt-get install -y -q \
+  curl \
+  php5 \
+  php5-cli \
+  php5-common \
+  php5-curl \
+  php5-gd \
+  php5-mcrypt \
+  php5-xsl \
+  php5-sqlite \
+  php-pear
+RUN ln -s /etc/php5/mods-available/mcrypt.ini /etc/php5/cli/conf.d/20-mcrypt.ini
 
-EXPOSE 22
+RUN php -r "readfile('https://getcomposer.org/installer');" | php
+RUN mv composer.phar /usr/local/bin/composer
 
-CMD ["setup-sshd"]
+EXPOSE 22 4444 5900
+CMD ["/usr/bin/supervisord"]
