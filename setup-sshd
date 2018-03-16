@@ -32,7 +32,7 @@ set -ex
 write_key() {
 	sudo mkdir -p "${JENKINS_AGENT_HOME}/.ssh"
 	sudo echo "$1" > "${JENKINS_AGENT_HOME}/.ssh/authorized_keys"
-	sudo chown -Rf jenkins:jenkins "${JENKINS_AGENT_HOME}/.ssh"
+	sudo chown -Rf seluser:seluser "${JENKINS_AGENT_HOME}/.ssh"
 	sudo chmod 0700 -R "${JENKINS_AGENT_HOME}/.ssh"
 }
 
@@ -52,5 +52,5 @@ fi
 # ensure variables passed to docker container are also exposed to ssh sessions
 #env | grep _ >> /etc/environment
 env | sudo bash -c 'grep _ >> /etc/environment'
-
+sudo ssh-keygen -A
 exec sudo /usr/sbin/sshd -D -e "${@}"
