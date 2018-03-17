@@ -52,5 +52,6 @@ fi
 # ensure variables passed to docker container are also exposed to ssh sessions
 #env | grep _ >> /etc/environment
 env | sudo bash -c 'grep _ >> /etc/environment'
-sudo ssh-keygen -A
+sudo rm -r /etc/ssh/ssh*key
+sudo dpkg-reconfigure openssh-server
 exec sudo /usr/sbin/sshd -D -e "${@}"
